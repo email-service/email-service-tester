@@ -1,9 +1,9 @@
 const config = {
 	esp: [
 		{
-			name: 'postmark#1',
+			name: 'postmark_test',
 			host: 'https://api.postmarkapp.com/',
-			stream : 'stream 1',
+			stream : 'test',
 
 		},{
 			name: 'postmark#2',
