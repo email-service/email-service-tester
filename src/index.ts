@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { EmailDispatcher } from '@email-service/email-service'
+import { getEmailService , EmailServiceSelector} from '@email-service/email-service'
 
 
 const app = new Hono()
@@ -25,7 +25,7 @@ app.get('/nm', async (c) => {
 	//console.log('emailEPS', emailEPS)
 
 
-	const emailEPS = new EmailDispatcher({
+	const emailEPS = await  getEmailService({
 		esp: 'nodemailer',
 		name: 'ethereal',
 		host: 'localhost',
@@ -55,29 +55,27 @@ app.get('/nm', async (c) => {
 
 app.get('/pm', async (c) => {
 
-
-	const emailEPS = new EmailDispatcher(
+	const emailEPS = await getEmailService(
 		{
 			esp: 'postmark',
 			name: 'PostMarktestSimu',
 			host: 'https://api.postmarkapp.com/email',
-			stream: 'test',
-			apiKey: process.env.POSTMARK_API_KEY || ''
+			stream: 'outbound',
+			apiKey: process.env.POSTMARK_API_KEY +'toto' || '' 
 		})
-
+ 
 	console.log('emailEPS', emailEPS)
 
 	const emailToSend = await emailEPS.sendEmail({
 		to: 'romain@demoustier.com',
 		from: 'test@question.direct',
-		subject: 'Essai de message PostMark' + new Date().toLocaleTimeString(),
+		subject: 'Essai de message PostMark ' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
 		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer par PostMark à ' + new Date().toLocaleTimeString() + '</p>',
 		meta: { test: 'test' }
 	})
 
 	console.log('emailToSend', emailToSend)
-
 
 	return c.json(emailToSend)
 })
@@ -86,7 +84,7 @@ app.get('/pm', async (c) => {
 app.get('/brevo', async (c) => {
 
 
-	const emailEPS = new EmailDispatcher(
+	const emailEPS = await getEmailService(
 		{
 			esp: 'brevo',
 			name: 'Brevotest',
@@ -116,18 +114,48 @@ app.get('/brevo', async (c) => {
 app.get('/esw', async (c) => {
 
 
-	const emailEPS = new EmailDispatcher(
+	const emailEPS = await getEmailService(
 		{
 			esp: 'emailserviceviewer',
 			name: 'emailservicetest',
-			host: 'http://192.168.68.52:5173/api/sendMail',
-			apiToken: 'token a demander'
+			host: 'http://localhost:3000/sendEmail',
+			apiToken: 'token a demander',
+			webhook: 'http://localhost:3200/webhook'
 		})
 
 	console.log('emailEPS', emailEPS)
 
 	const emailToSend = await emailEPS.sendEmail({
-		to: 'romain@demoustier.com',
+		to: 'romainbounbadmailcemm@demoustier.com',
+		from: 'server@maluro.com',
+		subject: 'Essai de message email-service-viewer envoyé à ' + new Date().toLocaleTimeString(),
+		text: 'Corp du message en texte',
+		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer  à ' + new Date().toLocaleTimeString() + '</p>',
+		meta: { test: 'test' }
+	})
+
+	console.log('emailToSend', emailToSend)
+
+
+	return c.json(emailToSend)
+})
+
+app.get('/api', async (c) => {
+
+
+	const emailEPS = await getEmailService(
+		{
+			esp: 'emailserviceviewer',
+			name: 'emailservicetest',
+			host: 'https://api.email-service.dev/sendEmail',
+			apiToken: 'token a demander',
+			webhook: 'https://corgi-big-ape.ngrok-free.app/webhook'
+		})
+
+	console.log('emailEPS', emailEPS)
+
+	const emailToSend = await emailEPS.sendEmail({
+		to: 'romainbouxnce@demoustier.com',
 		from: 'server@maluro.com',
 		subject: 'Essai de message email-service-viewer envoyé à ' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
@@ -158,7 +186,7 @@ app.get('/em', async (c) => {
 	//console.log('emailEPS', emailEPS)
 
 
-	const emailEPS = new EmailDispatcher({
+	const emailEPS = await getEmailService({
 		esp: 'nodemailer',
 		name: 'ethereal.email',
 		host: 'smtp.ethereal.email',
@@ -200,7 +228,7 @@ app.post('/webhook', async (c) => {
 
 	const userAgent = c.req.raw.headers.get('user-agent') || 'unknown';
 	console.log('user:', userAgent);
-	const responseWebHook = await EmailDispatcher.webHook(userAgent, body)
+	const responseWebHook = await EmailServiceSelector.webHook(userAgent, body)
 
 	console.log('responseWebHook:', responseWebHook);
 	// Log des headers et du body pour les visualiser
@@ -208,4 +236,7 @@ app.post('/webhook', async (c) => {
 })
 
 
-export default app
+export default { 
+	port: 3200, 
+	fetch: app.fetch, 
+  } 
