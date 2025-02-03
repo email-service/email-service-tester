@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { getEmailService , EmailServiceSelector} from '@email-service/email-service'
+import type {Config} from '@email-service/email-service'
 
 
 const app = new Hono()
@@ -55,20 +56,19 @@ app.get('/nm', async (c) => {
 
 app.get('/pm', async (c) => {
 
-	const emailEPS = await getEmailService(
+	const emailEPS =  getEmailService(
 		{
 			esp: 'postmark',
-			name: 'PostMarktestSimu',
-			host: 'https://api.postmarkapp.com/email',
 			stream: 'outbound',
-			apiKey: process.env.POSTMARK_API_KEY +'toto' || '' 
+			logger: true,
+			apiKey: process.env.POSTMARK_API_KEY || '' 
 		})
  
 	console.log('emailEPS', emailEPS)
 
 	const emailToSend = await emailEPS.sendEmail({
-		to: 'romain@demoustier.com',
-		from: 'test@question.direct',
+		to: 'romain@demoustier.com, nathalie@demoustier.com',
+		from: 'romain@demoustier.net',
 		subject: 'Essai de message PostMark ' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
 		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer par PostMark à ' + new Date().toLocaleTimeString() + '</p>',
@@ -84,12 +84,11 @@ app.get('/pm', async (c) => {
 app.get('/brevo', async (c) => {
 
 
-	const emailEPS = await getEmailService(
+	const emailEPS  =  getEmailService(
 		{
 			esp: 'brevo',
-			name: 'Brevotest',
-			host: 'https://api.brevo.com/v3/smtp/email',
-			apiKey: process.env.BREVO_API_KEY  || ''
+			apiKey: process.env.BREVO_API_KEY  || '',
+			logger: true,
 		})
 
 	console.log('emailEPS', emailEPS)
@@ -100,7 +99,35 @@ app.get('/brevo', async (c) => {
 		subject: 'Essai de message Brevo' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
 		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer par Brevo à ' + new Date().toLocaleTimeString() + '</p>',
-		meta: { test: 'test' }
+		metaData: { test: 'test' }
+	})
+
+	console.log('emailToSend', emailToSend)
+
+
+	return c.json(emailToSend)
+})
+
+
+app.get('/resend', async (c) => {
+
+
+	const emailEPS = await getEmailService(
+		{
+			esp: 'resend',
+			apiKey: process.env.RESEND_API_KEY || '',
+			logger: true,
+		})
+
+	console.log('emailEPS', emailEPS)
+
+	const emailToSend = await emailEPS.sendEmail({
+		to: 'romain@demoustier.com',
+		from: 'server@maluro.com',
+		subject: 'Essai de message Resend' + new Date().toLocaleTimeString(),
+		text: 'Corp du message en texte',
+		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer par Resend à ' + new Date().toLocaleTimeString() + '</p>',
+		metaData: { test: 'test' }
 	})
 
 	console.log('emailToSend', emailToSend)
@@ -117,7 +144,6 @@ app.get('/esw', async (c) => {
 	const emailEPS = await getEmailService(
 		{
 			esp: 'emailserviceviewer',
-			name: 'emailservicetest',
 			host: 'http://localhost:3000/sendEmail',
 			apiToken: 'token a demander',
 			webhook: 'http://localhost:3200/webhook'
@@ -131,7 +157,7 @@ app.get('/esw', async (c) => {
 		subject: 'Essai de message email-service-viewer envoyé à ' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
 		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer  à ' + new Date().toLocaleTimeString() + '</p>',
-		meta: { test: 'test' }
+		metaData: { test: 'test' }
 	})
 
 	console.log('emailToSend', emailToSend)
@@ -160,7 +186,7 @@ app.get('/api', async (c) => {
 		subject: 'Essai de message email-service-viewer envoyé à ' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
 		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer  à ' + new Date().toLocaleTimeString() + '</p>',
-		meta: { test: 'test' }
+		metaData: { test: 'test' }
 	})
 
 	console.log('emailToSend', emailToSend)
@@ -188,7 +214,6 @@ app.get('/em', async (c) => {
 
 	const emailEPS = await getEmailService({
 		esp: 'nodemailer',
-		name: 'ethereal.email',
 		host: 'smtp.ethereal.email',
 		port: 587,
 		auth: {
@@ -203,7 +228,7 @@ app.get('/em', async (c) => {
 		subject: 'Essai de message to ethermail' + new Date().toLocaleTimeString(),
 		text: 'Corp du message',
 		html: 'string html du message',
-		meta: { test: 'test' }
+		metaData: { test: 'test' }
 	})
 
 	console.log('emailToSend', emailToSend)
@@ -232,11 +257,13 @@ app.post('/webhook', async (c) => {
 
 	console.log('responseWebHook:', responseWebHook);
 	// Log des headers et du body pour les visualiser
-	return c.text('Webhook received')
+	return c.json(responseWebHook)
 })
+
 
 
 export default { 
 	port: 3200, 
 	fetch: app.fetch, 
+	
   } 
