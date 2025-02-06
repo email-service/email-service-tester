@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { getEmailService , EmailServiceSelector} from '@email-service/email-service'
 import type {Config} from '@email-service/email-service'
+import { generateEmailAddresses } from './utils/generateEmailAddresses'
 
 
 const app = new Hono()
@@ -59,7 +60,7 @@ app.get('/pm', async (c) => {
 	const emailEPS =  getEmailService(
 		{
 			esp: 'postmark',
-			stream: 'outbound',
+			stream: 'test',
 			logger: true,
 			apiKey: process.env.POSTMARK_API_KEY || '' 
 		})
@@ -67,8 +68,11 @@ app.get('/pm', async (c) => {
 	console.log('emailEPS', emailEPS)
 
 	const emailToSend = await emailEPS.sendEmail({
-		to: 'romain@demoustier.com, nathalie@demoustier.com',
-		from: 'romain@demoustier.net',
+		//to: 'romain@demoustier.com, nathalie@demoustier.com',
+		to:[{email:'romain@demoustier.com', name:'Romain DEMOUSTIER-POSTMARK'}, 'rd_postmark@demoustier.com'],
+		cc: generateEmailAddresses(2),
+		bcc: generateEmailAddresses(1),
+		from: 'romain@question.direct',
 		subject: 'Essai de message PostMark ' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
 		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer par PostMark à ' + new Date().toLocaleTimeString() + '</p>',
@@ -94,7 +98,8 @@ app.get('/brevo', async (c) => {
 	console.log('emailEPS', emailEPS)
 
 	const emailToSend = await emailEPS.sendEmail({
-		to: 'romain@demoustier.com',
+		to: [{email:'romain@demoustier.com', name:'Romain DEMOUSTIER-BREVO'}, 'rd_brevo@demoustier.com'],
+		cc : generateEmailAddresses(2),
 		from: 'server@maluro.com',
 		subject: 'Essai de message Brevo' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
@@ -119,18 +124,21 @@ app.get('/resend', async (c) => {
 			logger: true,
 		})
 
-	console.log('emailEPS', emailEPS)
+	//console.log('emailEPS', emailEPS)
 
+	//{email:'romain@demoustier.com', name:'Romain DEMOUSTIER-RESEND'}, 'rr_resend@demoustier.com'
 	const emailToSend = await emailEPS.sendEmail({
-		to: 'romain@demoustier.com',
-		from: 'server@maluro.com',
+		to:[ {email:'romain@demoustier.com', name:'Romain DEMOUSTIER-RESEND'}, 'rr_resend@demoustier.com' ],
+		cc : generateEmailAddresses(2),
+		bcc: generateEmailAddresses(1),
+		from: 'romain@resend.demoustier.com',
 		subject: 'Essai de message Resend' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
 		html: '<h1>Message en HTML</h1><p>avec un paragraphe</p><p>envoyer par Resend à ' + new Date().toLocaleTimeString() + '</p>',
 		metaData: { test: 'test' }
 	})
 
-	console.log('emailToSend', emailToSend)
+	//console.log('emailToSend', emailToSend)
 
 
 	return c.json(emailToSend)
@@ -143,13 +151,14 @@ app.get('/esw', async (c) => {
 
 	const emailEPS = await getEmailService(
 		{
-			esp: 'emailserviceviewer',
+			esp: 'emailserviceviewerlocal',
 			host: 'http://localhost:3000/sendEmail',
-			apiToken: 'token a demander',
-			webhook: 'http://localhost:3200/webhook'
+			apiToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6IndheHFqeGciLCJleHBpcmVkRGF0ZSI6IjIwMjUtMDItMDVUMTU6MzM6NDEuNjIzWiJ9.S707VAHls8Qy951bs7HvQ9Qj_yfStg37-KxdQluuPgg',
+			webhook: 'http://localhost:3200/webhook',
+			logger: true,
 		})
 
-	console.log('emailEPS', emailEPS)
+	console.log('#1 emailEPS', emailEPS)
 
 	const emailToSend = await emailEPS.sendEmail({
 		to: 'romainbounbadmailcemm@demoustier.com',
@@ -160,28 +169,30 @@ app.get('/esw', async (c) => {
 		metaData: { test: 'test' }
 	})
 
-	console.log('emailToSend', emailToSend)
+	console.log('#2 emailToSend', emailToSend)
 
 
 	return c.json(emailToSend)
 })
 
-app.get('/api', async (c) => {
-
+app.get('/es', async (c) => {
 
 	const emailEPS = await getEmailService(
 		{
 			esp: 'emailserviceviewer',
 			name: 'emailservicetest',
 			host: 'https://api.email-service.dev/sendEmail',
-			apiToken: 'token a demander',
+			apiToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRJZCI6ImlyeG5wbTMiLCJleHBpcmVkRGF0ZSI6IjIwMjUtMDItMDVUMTU6Mjk6MDMuMDQ5WiJ9.IrKMN6RdJs_mE1IBIjAHq1u9tNXvf_rBPHsNsYoQMyc',
 			webhook: 'https://corgi-big-ape.ngrok-free.app/webhook'
 		})
 
 	console.log('emailEPS', emailEPS)
 
+
 	const emailToSend = await emailEPS.sendEmail({
-		to: 'romainbouxnce@demoustier.com',
+		to: 'romain@demoustier.com',
+		 cc: 'rd_1@demoustier.com',
+		 bcc: generateEmailAddresses(20),
 		from: 'server@maluro.com',
 		subject: 'Essai de message email-service-viewer envoyé à ' + new Date().toLocaleTimeString(),
 		text: 'Corp du message en texte',
